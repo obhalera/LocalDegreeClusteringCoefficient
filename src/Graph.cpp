@@ -108,8 +108,8 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
     }
 
     // Steps 4-7: Repeat l times
-    // c1 = (num_edges * dR) / (r * l)  (inverse sampling probability for edges)
-    double c1 = ((double)num_edges * (double)dR) / ((double)r * (double)l);
+    // c1 = (num_nodes * dR) / (r * l)  (inverse sampling probability for edges)
+    double c1 = ((double)num_nodes * (double)dR) / ((double)r * (double)l);
 
     for (long long iter = 0; iter < l; iter++) {
 
@@ -138,7 +138,7 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
 
         // Step 7: If w is adjacent to v, increment triangle_sum at degree(x)
         if (w != v && has_edge(w, v)) {
-            triangle_sum[degree(x)] += c1;
+            triangle_sum[degree(x)] += (c1*((double)degree(u)));    //Need to add degree(u) to the weight because we sampled w uniformly from u's neighbors, so we need to multiply by degree(u) to get the correct inverse probability weight for sampling w.
         }
     }
 
