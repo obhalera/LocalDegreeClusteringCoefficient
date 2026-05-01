@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "Graph.h"
+//Compile: clang++ main.cpp graph.cpp -std=c++17
 //./main graph.txt 0.1 0.1
 int main(int argc, char* argv[]) {
 
@@ -29,11 +30,15 @@ int main(int argc, char* argv[]) {
     std::cout << "Done.\n\n";
 
     // Step 2: Estimated degree clustering coefficients
-    std::cout << "Computing estimated degree clustering coefficients "
+   /* std::cout << "Computing estimated degree clustering coefficients "
               << "(frac_nodes=" << frac_nodes
               << ", frac_edges=" << frac_edges << ")...\n";
     std::vector<double> estimated = G.estimated_degree_clustering_coefficient(frac_nodes, frac_edges);
-    std::cout << "Done.\n\n";
+    std::cout << "Done.\n\n";*/
+
+    std::cout<<"Computing the estimated clustering coefficient using edge samples...\n";
+    std::vector<double> estimated = G.edge_estimated_degree_clustering_coefficient(frac_nodes, frac_edges);
+    std::cout<<"Done.\n\n";
 
     // Step 3: Compare and print relative errors per bin
     std::cout << "Comparing exact vs estimated:\n\n";

@@ -18,24 +18,32 @@ private:
 public:
     // Constructor
     CSRGraph(const std::string& filepath, bool undirected = true) {
-        rng.seed(std::random_device{}());
+
+        std::random_device rd;
+        auto seed = rd()
+                    ^ std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        std::mt19937 gen(seed);
 
         std::ifstream infile(filepath);
         if (!infile) {
             throw std::runtime_error("Could not open file");
         }
 
-        std::vector<std::pair<long long, long long>> edges;
+        std::vector<std::pair<long long, long long> > edges;
         long long u, v;
         long long max_node = -1;
 
         // Step 1: Read edges + symmetrize if undirected
         while (infile >> u >> v) {
-            edges.emplace_back(u, v);
-            max_node = std::max({max_node, u, v});
+            //edges.emplace_back(u, v);
+            edges.push_back(std::make_pair(u, v));
+            if(u < v) max_node = v;
+            else max_node = u;
+            //max_node = std::max({max_node, u, v});
 
             if (undirected && u != v) {
-                edges.emplace_back(v, u);
+                //edges.emplace_back(v, u);
+                edges.push_back(std::make_pair(v, u));
             }
         }
 
@@ -133,5 +141,6 @@ public:
 
     std::vector<double> actual_degree_clustering_coefficient();
     std::vector<double> estimated_degree_clustering_coefficient(double frac_nodes, double frac_edges);
+    std::vector<double> edge_estimated_degree_clustering_coefficient(double r_frac_edges, double l_frac_edges);
     void compare_clustering_coefficients(const std::vector<double>& exact, const std::vector<double>& estimated);
 };

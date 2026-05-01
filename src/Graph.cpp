@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include "Graph.h"
 
+
+//Need to update this function
 std::vector<double> CSRGraph::actual_degree_clustering_coefficient() {
     
     // Arrays of size num_nodes
@@ -25,15 +27,19 @@ std::vector<double> CSRGraph::actual_degree_clustering_coefficient() {
             // Step 1: Determine low degree end
             long long low  = (node_degree[u] <= node_degree[v]) ? u : v;
             long long high = (low == u) ? v : u;
+            long long lower_idx = (v < u) ? v : u;
 
             // Step 2: For every neighbor w of low-degree end,
             // check if high and w are adjacent
             for (long long w : neighbors(low)) {
                 if (w == high) continue; // skip the other endpoint
                 if (has_edge(high, w)) {
-                    triangle_count[low]++;
-                    triangle_count[high]++;
-                    triangle_count[w]++;
+                    if(w > lower_idx) //Added this condition, cross vertify
+                    {
+                        triangle_count[low]++;
+                        triangle_count[high]++;
+                        triangle_count[w]++;
+                    }
                 }
             }
         }
@@ -48,10 +54,14 @@ std::vector<double> CSRGraph::actual_degree_clustering_coefficient() {
         degree_node_count[node_degree[i]]++;
     }
 
+    /*for(auto i = 0; i < degree_node_count.size(); i++){
+        std::cout<<"Degree: "<<i<<", count: "<<degree_node_count[i]<<std::endl;
+    }*/
+
     // Step 4: For each degree, sum triangle counts of all nodes of that degree
-    std::vector<long long> degree_triangle_sum(max_degree + 1, 0);
+    std::vector<double> degree_triangle_sum(max_degree + 1, 0);
     for (long long i = 0; i < num_nodes; i++) {
-        degree_triangle_sum[node_degree[i]] += triangle_count[i];
+        degree_triangle_sum[node_degree[i]] += ((double)triangle_count[i])/2.0;
     }
 
     // Step 5: For every degree, compute
@@ -61,13 +71,90 @@ std::vector<double> CSRGraph::actual_degree_clustering_coefficient() {
         if (degree_node_count[d] == 0) continue;
 
         double d_choose_2 = (double)d * (d - 1) / 2.0;
-        clustering[d] = (double)degree_triangle_sum[d] /
-                        ((double)degree_node_count[d] * d_choose_2);
+        /*clustering[d] = (double)degree_triangle_sum[d] /
+                        ((double)degree_node_count[d] * d_choose_2);*/
+       clustering[d] = (double)degree_triangle_sum[d];
     }
 
     return clustering;
 }
 
+std::vector<double> CSRGraph::edge_estimated_degree_clustering_coefficient(double r_frac_edges, double l_frac_edges)
+{
+    long long r = (long long)(r_frac_edges * num_edges);
+    long long l = (long long)(l_frac_edges * num_edges);
+    long long max_degree = 0;
+    double dR = 0.0;
+
+    std::cout<<"r: "<<r<<", l: "<<l<<std::endl;
+
+    for (long long i = 0; i < num_nodes; i++) {
+        max_degree = std::max(max_degree, degree(i));
+    }
+
+    std::vector<double> triangle_sum(max_degree + 1, 0.0);  // triangle counters per degree
+
+    std::vector<long long> vtx_degrees, edge_degrees;
+    std::vector<std::pair<long long, long long> > edge_samples;
+
+    for(long long i = 0; i < num_nodes; i++)
+        vtx_degrees.push_back(degree(i));
+
+    std::discrete_distribution<> vtx_dist(vtx_degrees.begin(), vtx_degrees.end());
+
+    for(long long i = 0; i < r; i++)
+    {
+        //Sample a vertex proportional to its degree
+        long long first_end = vtx_dist(rng);
+
+        //Sample a uniform random neighbor of this vertex
+        long long second_end = random_neighbor(first_end);
+
+        long long edge_degree = (degree(first_end) <= degree(second_end)) ? degree(first_end) : degree(second_end);
+
+        //Add the edge degrees
+        dR += edge_degree;
+
+        edge_degrees.push_back(edge_degree);
+        edge_samples.push_back(std::make_pair(first_end, second_end));
+    }
+
+    std::discrete_distribution<> edge_dist(edge_degrees.begin(), edge_degrees.end());
+
+    for(long long i = 0; i < l; i++)
+    {
+        //Sample an edge proportional to its degree
+        long long sampled_edge_idx = edge_dist(rng);
+
+        long long x = edge_samples[sampled_edge_idx].first;
+        long long y = edge_samples[sampled_edge_idx].second;
+
+        //Determine the end point with smaller degree
+        long long u = (degree(x) <= degree(y)) ? x : y;
+        long long v = (u == x) ? y : x;
+
+        //Sample a neighbor w of u uniformly at random
+        long long w = random_neighbor(u);
+        
+        //Check if w forms a trianggle with v
+        if (w != v && has_edge(w, v)) {
+            triangle_sum[degree(x)] += 1.0;
+            triangle_sum[degree(y)] += 1.0;
+        }
+    }
+
+    //Rescale the triangle counts
+    double scaling_factor = ((((double)num_edges)*(dR))/((2.0 * ((double)l))*(double)r));
+    std::cout<<"Scaling factor: "<<scaling_factor<<std::endl;
+    for(long long i = 0; i < triangle_sum.size(); i++){
+        //std::cout<<"Triangle Count: "<<triangle_sum[i]<<std::endl;
+        triangle_sum[i] = (scaling_factor)*((double)triangle_sum[i]);
+    }
+        
+
+    return triangle_sum;
+
+}
 //Figure c1, c2, c3
 std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double frac_nodes, double frac_edges) {
 
@@ -76,6 +163,7 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
 
     // Arrays indexed by degree
     long long max_degree = 0;
+    std::cout<<"r: "<<r<<", l: "<<l<<std::endl;
     for (long long i = 0; i < num_nodes; i++) {
         max_degree = std::max(max_degree, degree(i));
     }
@@ -105,6 +193,7 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
     double c2 = (double)num_nodes / (double)r;
     for (long long x : R) {
         node_count[degree(x)] += c2;
+       // std::cout<<"Degree: "<<degree(x)<<std::endl;
     }
 
     // Steps 4-7: Repeat l times
@@ -129,12 +218,15 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
         // Step 5: Sample a uniform random neighbor y of x → edge {x, y}
         long long y = random_neighbor(x);
 
+       // std::cout<<"x: "<<x<<", degree(x): "<<degree(x)<<", y: "<<y<<", degree(y): "<<degree(y)<<std::endl;
+
         // Determine low and high degree endpoints
         long long u = (degree(x) <= degree(y)) ? x : y;
         long long v = (u == x) ? y : x;
 
         // Step 6: Sample a neighbor w of u uniformly at random
         long long w = random_neighbor(u);
+        
 
         // Step 7: If w is adjacent to v, increment triangle_sum at degree(x)
         if (w != v && has_edge(w, v)) {
@@ -149,7 +241,8 @@ std::vector<double> CSRGraph::estimated_degree_clustering_coefficient(double fra
         if (node_count[d] == 0.0) continue;
 
         double d_choose_2 = (double)d * (d - 1) / 2.0;
-        clustering[d] = triangle_sum[d] / (node_count[d] * d_choose_2);
+        //clustering[d] = triangle_sum[d] / (node_count[d] * d_choose_2);
+        clustering[d] = triangle_sum[d];
     }
 
     return clustering;
