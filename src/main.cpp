@@ -37,8 +37,6 @@ int main(int argc, char* argv[]) {
     double frac_nodes = (argc >= 2) ? std::stod(argv[2]) : 0.1;
     double frac_edges = (argc >= 3) ? std::stod(argv[3]) : 0.1;
 
-    
-
     // Load graph
     std::cout << "Loading graph from: " << filepath << "\n";
     CSRGraph G(filepath, /*undirected=*/true);

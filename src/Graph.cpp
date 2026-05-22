@@ -362,14 +362,19 @@ std::vector<double> CSRGraph :: rw_vertex_estimated_degree_clustering_coefficien
 }
 
 /*Set scaling factor*/
-std::vector<double> CSRGraph::rw_degree_cycle_estimation(double r_frac_edges, double l_frac_edges, vector<long long> &red_nodes, vector<long long> &walk_vertices)
+std::vector<double> CSRGraph::rw_degree_cycle_estimation(double l_frac_edges, vector<long long> &red_nodes, vector<long long> &walk_vertices)
 {
     long long max_degree, curr_edge_sample_idx;
     long long l = (long long)(l_frac_edges * num_edges);
     vector<double> walk_edge_weights;
+    double total_weight = 0.0;
 
     for(auto i = 1; i < walk_vertices.size(); i++)
+    {
         walk_edge_weights.push_back((double)(degree(walk_vertices[i-1]) * degree(walk_vertices[i])));
+        total_weight += ((double)(degree(walk_vertices[i-1]) * degree(walk_vertices[i])));
+    }
+        
 
     for (long long i = 0; i < num_nodes; i++) {
         max_degree = std::max(max_degree, degree(i));
@@ -421,7 +426,7 @@ std::vector<double> CSRGraph::rw_degree_cycle_estimation(double r_frac_edges, do
 
         }
     }
-    double scaling_factor = (double)(num_edges/(l)); //Set this scaling factor properly if needed
+    double scaling_factor = (double)((num_edges * total_weight)/(l * walk_vertices.size())); //Set this scaling factor properly if needed
 
     for(auto i = 0; i < cycle_sum.size(); i++)
         cycle_sum[i] = (long long)(scaling_factor * cycle_sum[i]);

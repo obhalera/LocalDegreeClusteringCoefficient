@@ -173,6 +173,6 @@ public:
     std::vector<double> rw_vertex_estimated_degree_clustering_coefficient(double r_frac_edges, double l_frac_edges, vector<long long> &walk_vertices);
     std::vector<double> clustering_coeff_sparsification(double p, vector<long long> &walk);
 
-    std::vector<double> rw_degree_cycle_estimation(double r_frac_edges, double l_frac_edges, vector<long long> &red_nodes, vector<long long> &walk_vertices);
+    std::vector<double> rw_degree_cycle_estimation(double l_frac_edges, vector<long long> &red_nodes, vector<long long> &walk_vertices);
     std::vector<double> degree_4cycle_distribution(vector<long long> &red_vertices);
 };
